@@ -3,13 +3,13 @@
  * Ponto unico de tuning — nenhum destes numeros pode aparecer solto no codigo.
  */
 
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import { PLAY_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
 
 export const PLAYER = {
   /** Velocidade horizontal, px/s. */
   speed: 260,
   /** Linha da nave, fixa na base da tela. */
-  y: LOGICAL_HEIGHT - 46,
+  y: PLAY_HEIGHT - 46,
   /** Folga das paredes laterais. */
   marginX: 10,
   /**

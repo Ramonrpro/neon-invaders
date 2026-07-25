@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { BOSS, BOSS_LASER } from '@game/config/bosses';
 import { PALETTE } from '@game/config/palette';
-import { LOGICAL_HEIGHT } from '@game/config/screen';
+import { PLAY_HEIGHT } from '@game/config/screen';
 
 /**
  * O laser vertical da nave-mae (fases 4 e 5).
@@ -22,7 +22,7 @@ export class BossLaser {
 
   constructor(scene: Phaser.Scene) {
     this.beam = scene.add
-      .rectangle(0, 0, BOSS_LASER.warningWidth, LOGICAL_HEIGHT, PALETTE.red)
+      .rectangle(0, 0, BOSS_LASER.warningWidth, PLAY_HEIGHT, PALETTE.red)
       .setOrigin(0.5, 0)
       .setVisible(false);
   }
@@ -46,7 +46,7 @@ export class BossLaser {
     this.elapsedMs = 0;
     this.beam.setPosition(x, topY);
     this.beam.width = BOSS_LASER.warningWidth;
-    this.beam.height = LOGICAL_HEIGHT - topY;
+    this.beam.height = PLAY_HEIGHT - topY;
     this.beam.setFillStyle(PALETTE.amber);
     this.beam.setVisible(true);
   }

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { POWERUP_DROP, type PowerUpDefinition, type PowerUpId } from '@game/config/powerups';
-import { LOGICAL_HEIGHT } from '@game/config/screen';
+import { PLAY_HEIGHT } from '@game/config/screen';
 
 /**
  * A capsula que cai. Sempre vem de um `Pool` — nunca instancie uma durante o
@@ -54,7 +54,7 @@ export class PowerUp extends Phaser.GameObjects.Image {
     const phase = Math.floor(this.elapsedMs / POWERUP_DROP.blinkPeriodMs) % 2;
     this.setAlpha(phase === 0 ? 1 : 0.55);
 
-    return this.y - this.displayHeight / 2 > LOGICAL_HEIGHT;
+    return this.y - this.displayHeight / 2 > PLAY_HEIGHT;
   }
 
   /** AABB contra um retangulo qualquer — na pratica, a nave. */

@@ -16,7 +16,13 @@ import Phaser from 'phaser';
 import { InputSystem } from '@game/systems/InputSystem';
 import { getRunReporter, type SubmissionState } from '@game/systems/RunReporter';
 import { PALETTE, toCss } from '@game/config/palette';
-import { CENTER_X, CENTER_Y, HUD_FONT_FAMILY, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import {
+  CANVAS_HEIGHT,
+  CENTER_X,
+  HUD_FONT_FAMILY,
+  LOGICAL_WIDTH,
+  PLAY_CENTER_Y,
+} from '@game/config/screen';
 import { formatScore } from '@game/core/scoring';
 
 /** Emitido na `GameScene` quando o jogador pede outra partida. */
@@ -87,16 +93,26 @@ export class GameOverScene extends Phaser.Scene {
 
     // Veu escuro: a cena de jogo fica visivel atras, congelada, mas apagada o
     // bastante para a formacao nao brigar com o texto por cima dela.
-    this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PALETTE.black, 0.9).setOrigin(0, 0);
+    this.add.rectangle(0, 0, LOGICAL_WIDTH, CANVAS_HEIGHT, PALETTE.black, 0.9).setOrigin(0, 0);
 
-    this.label(CENTER_Y - 100, 'GAME OVER', 32, PALETTE.red);
-    this.label(CENTER_Y - 64, this.result.reason, 13, PALETTE.magenta);
+    this.label(PLAY_CENTER_Y - 100, 'GAME OVER', 32, PALETTE.red);
+    this.label(PLAY_CENTER_Y - 64, this.result.reason, 13, PALETTE.magenta);
 
-    this.label(CENTER_Y - 16, `SCORE   ${formatScore(this.result.score)}`, 18, PALETTE.phosphor);
-    this.label(CENTER_Y + 14, `FASE    ${this.result.level}`, 16, PALETTE.cyan);
-    this.label(CENTER_Y + 38, `TEMPO   ${formatDuration(this.result.elapsedMs)}`, 16, PALETTE.cyan);
+    this.label(
+      PLAY_CENTER_Y - 16,
+      `SCORE   ${formatScore(this.result.score)}`,
+      18,
+      PALETTE.phosphor,
+    );
+    this.label(PLAY_CENTER_Y + 14, `FASE    ${this.result.level}`, 16, PALETTE.cyan);
+    this.label(
+      PLAY_CENTER_Y + 38,
+      `TEMPO   ${formatDuration(this.result.elapsedMs)}`,
+      16,
+      PALETTE.cyan,
+    );
 
-    this.rankLabel = this.label(CENTER_Y + 74, '', 15, PALETTE.amber);
+    this.rankLabel = this.label(PLAY_CENTER_Y + 74, '', 15, PALETTE.amber);
     // `onResolved` entrega na hora se a submissao ja' resolveu — o resultado
     // local costuma chegar antes de esta Scene existir.
     this.unsubscribe = getRunReporter().onResolved((state) => {
@@ -108,9 +124,9 @@ export class GameOverScene extends Phaser.Scene {
       this.unsubscribe = null;
     });
 
-    this.label(CENTER_Y + 122, 'ENTER PARA JOGAR DE NOVO', 14, PALETTE.amber);
+    this.label(PLAY_CENTER_Y + 122, 'ENTER PARA JOGAR DE NOVO', 14, PALETTE.amber);
 
-    const rankY = CENTER_Y + 156;
+    const rankY = PLAY_CENTER_Y + 156;
     this.label(rankY, 'VER RANKING', 14, PALETTE.cyan);
     this.add
       .zone(CENTER_X, rankY, LOGICAL_WIDTH * 0.6, 40)

@@ -73,10 +73,9 @@ Fora do checklist, decidido durante a execução:
 - [x] Bloqueio de scroll, pull-to-refresh, zoom por duplo toque, seleção
 - [x] Pausa automática em `visibilitychange`
 - [x] Detecção toque vs. teclado adaptando as instruções da tela de título
-- [ ] **Teste em viewport real de celular** — pendente. Não consegui redimensionar
-      a janela do navegador neste ambiente (`resize_window` não teve efeito), então
-      a proporção 3:4 foi conferida por medição do Scale Manager, não em 414×896
-      de verdade. Falta abrir num celular.
+- [x] **Teste em viewport real de celular** — feito no Milestone 10: o usuário
+      publicou na Vercel e abriu no aparelho. Apareceram dois problemas reais
+      (o dedo cobria a nave, e o letterbox era assimétrico), corrigidos lá.
 
 Fora do checklist, decidido durante a execução:
 
@@ -345,6 +344,56 @@ Fora do checklist, decidido durante a execução:
   nome, senão trocar de backend muda o que o seletor de três letras produz.
 
 ---
+
+## Milestone 10 — Celular de verdade `[frontend]`
+
+Nasceu do primeiro teste num aparelho físico, depois da publicação no GitHub
+(`Ramonrpro/neon-invaders`) e na Vercel. O jogo rodava, mas o polegar ficava em
+cima da nave e dos bunkers — a área livre da tela existia e era inútil, porque o
+Phaser não recebe ponteiro fora do canvas.
+
+- [x] Altura do canvas medida no boot (`core/viewport.ts`, com teste): a área de
+      jogo continua 480×640 no topo e a sobra, até 224 px, é o deck de arrasto
+- [x] Triagem de `PLAY_HEIGHT` (a ação) vs. `CANVAS_HEIGHT` (o vidro do monitor)
+      em todos os consumidores — `LOGICAL_HEIGHT` e `CENTER_Y` deixaram de
+      existir para que o compilador listasse cada sítio
+- [x] Conserto do alinhamento duplo do canvas (`autoCenter` + flexbox somavam,
+      jogando 75% da folga para cima)
+- [x] Dica "ARRASTE AQUI PARA MOVER" que sai no primeiro arrasto e não volta
+- [x] PWA instalável sem dependência nova: ícones PNG escritos com o `zlib` do
+      Node em tempo de build, manifest, service worker com cache offline
+- [x] Linha "INSTALAR APP" nos ajustes (com o caminho manual do iOS) e aviso na
+      tela de título
+- [x] `?viewport=WxH` em dev — o ambiente de automação não redimensiona a janela
+- [ ] **Abrir o app instalado num celular** — pendente e só o usuário faz:
+      instalar pela tela de início, conferir o HUD abaixo da barra de status
+      (é o que `apple-mobile-web-app-status-bar-style: black` deveria garantir) e
+      jogar offline depois de uma visita online.
+
+Fora do checklist, decidido durante a execução:
+
+- **A área de jogo nunca fica menor do que era.** Enquanto a largura é o fator
+  limitante do `FIT` — todo celular retrato — a escala é `larguraTela/480` nos
+  dois desenhos. Entre 4:3 e 1,80 o canvas passa a ter o aspecto da tela e o
+  letterbox desaparece; acima disso o deck bate no teto e a sobra vai para baixo
+  dele; abaixo de 4:3 o deck é zero e nada muda. Nenhum número de balanceamento
+  foi tocado — `PLAYER.y` segue 594, `INVASION_Y` segue 570.
+- **Overlay de partida centra na ação, tela cheia centra no canvas.** Descoberto
+  na conferência visual: com a pausa centrada no canvas, "PAUSADO" caía sobre os
+  bunkers. O scrim, porém, continua cobrindo o canvas inteiro.
+- **O deck não tem `Zone`.** O `InputSystem` já escuta ponteiro no nível da
+  Scene, e uma `Zone` roubaria o toque do resto da tela (família do
+  `tapHandledByButton`). Nenhuma linha do `InputSystem` mudou nesta feature.
+- **O bitmap do ícone é a única arte fora de `sprites.ts`.** `scripts/` roda em
+  Node cru, fora do `tsconfig.json`, e não importa TypeScript — e o jogo não
+  consome esse ícone, só o launcher. Sem dois leitores, não há cópia a divergir.
+  O que duplica é a cor, travada contra `PALETTE` em `tests/pwaAssets.test.ts`.
+- **`.gitattributes` com `eol=lf` entrou por necessidade.** O `core.autocrlf`
+  padrão do Git for Windows reescreve arquivos com CRLF no checkout, e
+  `tests/edgeShared.test.ts` compara byte a byte com a cópia das Edge Functions —
+  reprovava sem que ninguém tivesse mudado uma regra.
+- O `.gitignore` passou a proibir binários por extensão. A regra de "zero assets
+  externos" da seção 2 do CLAUDE.md estava só escrita; agora é aplicada.
 
 ## Backlog de power-ups (pós-v1)
 

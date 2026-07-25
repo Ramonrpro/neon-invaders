@@ -6,6 +6,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@game': fileURLToPath(new URL('./src/game', import.meta.url)),
+      '@pwa': fileURLToPath(new URL('./src/pwa', import.meta.url)),
       '@services': fileURLToPath(new URL('./src/services', import.meta.url)),
       '@ui': fileURLToPath(new URL('./src/ui', import.meta.url)),
     },

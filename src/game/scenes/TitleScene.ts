@@ -23,8 +23,16 @@ import { InputSystem } from '@game/systems/InputSystem';
 import type { InputMode } from '@game/systems/device';
 import { ATTRACT } from '@game/config/juice';
 import { PALETTE, toCss } from '@game/config/palette';
-import { CENTER_X, CENTER_Y, HUD_FONT_FAMILY, LOGICAL_WIDTH } from '@game/config/screen';
+import {
+  CANVAS_CENTER_Y,
+  CANVAS_HEIGHT,
+  CENTER_X,
+  HUD_FONT_FAMILY,
+  LOGICAL_WIDTH,
+} from '@game/config/screen';
+import { resolveInstallOption, type InstallOption } from '@game/core/install';
 import { formatScore } from '@game/core/scoring';
+import { installAvailability, onInstallChange } from '@pwa/index';
 import { drawBackgroundBands } from '@game/gfx/background';
 import { createStarfield, twinkleStarfield } from '@game/gfx/starfield';
 import { TEX } from '@game/gfx/sprites';
@@ -52,6 +60,17 @@ const HOW_TO_PLAY: readonly string[] = [
   'OS BUNKERS NAO VOLTAM ATE A PROXIMA FASE',
 ];
 
+/**
+ * Aviso de instalacao no pe' da tela. Vazio quando nao ha' nada a dizer — jogo
+ * ja' instalado ou navegador que nao instala.
+ */
+const INSTALL_NOTICES: Readonly<Record<InstallOption, string>> = {
+  prompt: 'INSTALE O JOGO NOS AJUSTES',
+  manual: 'COMPARTILHAR -> ADICIONAR A TELA DE INICIO',
+  installed: '',
+  none: '',
+};
+
 /** Quantos nomes o painel de recordes mostra. */
 const TOP_ROWS = 5;
 
@@ -76,13 +95,16 @@ export class TitleScene extends Phaser.Scene {
   private prompt!: Phaser.GameObjects.Text;
   private pilotLabel!: Phaser.GameObjects.Text;
   private nameHint!: Phaser.GameObjects.Text;
+  private installLabel!: Phaser.GameObjects.Text;
   private nameEntry: NameEntry | null = null;
 
   /** Imagens e textos da vitrine de aliens, escondidos durante a escolha do nome. */
   private readonly showcase: (Phaser.GameObjects.Image | Phaser.GameObjects.Text)[] = [];
   /** Só as imagens da vitrine: sao elas que marcham e trocam de frame. */
-  private readonly marchers: { image: Phaser.GameObjects.Image; frames: readonly [string, string] }[] =
-    [];
+  private readonly marchers: {
+    image: Phaser.GameObjects.Image;
+    frames: readonly [string, string];
+  }[] = [];
   private readonly scorePanel: Phaser.GameObjects.Text[] = [];
   private readonly howToPanel: Phaser.GameObjects.Text[] = [];
   private stars: Phaser.GameObjects.Rectangle[] = [];
@@ -121,7 +143,7 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.black);
-    drawBackgroundBands(this);
+    drawBackgroundBands(this, CANVAS_HEIGHT);
     this.stars = createStarfield(this, 34);
     this.controls = new InputSystem(this);
     this.mode = 'loading';
@@ -139,14 +161,14 @@ export class TitleScene extends Phaser.Scene {
     this.panel = 'showcase';
 
     this.add
-      .text(CENTER_X, CENTER_Y - 190, 'NEON', {
+      .text(CENTER_X, CANVAS_CENTER_Y - 190, 'NEON', {
         fontFamily: HUD_FONT_FAMILY,
         fontSize: '56px',
         color: toCss(PALETTE.phosphor),
       })
       .setOrigin(0.5);
     this.add
-      .text(CENTER_X, CENTER_Y - 138, 'INVADERS', {
+      .text(CENTER_X, CANVAS_CENTER_Y - 138, 'INVADERS', {
         fontFamily: HUD_FONT_FAMILY,
         fontSize: '40px',
         color: toCss(PALETTE.cyan),
@@ -157,14 +179,14 @@ export class TitleScene extends Phaser.Scene {
     this.buildScorePanel();
     this.buildHowToPanel();
 
-    this.pilotLabel = this.label(CENTER_Y + 30, 15, PALETTE.white);
-    this.nameHint = this.label(CENTER_Y + 52, 11, PALETTE.violet);
-    this.lineA = this.label(CENTER_Y + 128, 14, PALETTE.amber);
-    this.lineB = this.label(CENTER_Y + 150, 12, PALETTE.amber);
-    this.prompt = this.label(CENTER_Y + 190, 16, PALETTE.white);
+    this.pilotLabel = this.label(CANVAS_CENTER_Y + 30, 15, PALETTE.white);
+    this.nameHint = this.label(CANVAS_CENTER_Y + 52, 11, PALETTE.violet);
+    this.lineA = this.label(CANVAS_CENTER_Y + 128, 14, PALETTE.amber);
+    this.lineB = this.label(CANVAS_CENTER_Y + 150, 12, PALETTE.amber);
+    this.prompt = this.label(CANVAS_CENTER_Y + 190, 16, PALETTE.white);
 
     // Trocar de nome depois: toque no nome, ou tecla N.
-    this.button(CENTER_X, CENTER_Y + 30, LOGICAL_WIDTH * 0.7, 34, () => {
+    this.button(CENTER_X, CANVAS_CENTER_Y + 30, LOGICAL_WIDTH * 0.7, 34, () => {
       if (this.mode === 'ready') this.startNaming();
     });
     this.input.keyboard?.on('keydown-N', () => {
@@ -217,7 +239,7 @@ export class TitleScene extends Phaser.Scene {
     ];
 
     showcase.forEach(([frames, points], index) => {
-      const y = CENTER_Y - 76 + index * 30;
+      const y = CANVAS_CENTER_Y - 76 + index * 30;
       const image = this.add.image(CENTER_X - 40, y, frames[0]).setOrigin(0.5);
       this.showcase.push(image);
       this.marchers.push({ image, frames });
@@ -253,17 +275,21 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private buildScorePanel(): void {
-    this.scorePanel.push(this.label(CENTER_Y - 100, 13, PALETTE.cyan).setText('MELHORES PILOTOS'));
+    this.scorePanel.push(
+      this.label(CANVAS_CENTER_Y - 100, 13, PALETTE.cyan).setText('MELHORES PILOTOS'),
+    );
     for (let i = 0; i < TOP_ROWS; i++) {
-      this.scorePanel.push(this.label(CENTER_Y - 72 + i * 22, 14, PALETTE.phosphor));
+      this.scorePanel.push(this.label(CANVAS_CENTER_Y - 72 + i * 22, 14, PALETTE.phosphor));
     }
     for (const object of this.scorePanel) object.setVisible(false);
   }
 
   private buildHowToPanel(): void {
-    this.howToPanel.push(this.label(CENTER_Y - 100, 13, PALETTE.cyan).setText('COMO JOGAR'));
+    this.howToPanel.push(this.label(CANVAS_CENTER_Y - 100, 13, PALETTE.cyan).setText('COMO JOGAR'));
     HOW_TO_PLAY.forEach((line, index) => {
-      this.howToPanel.push(this.label(CENTER_Y - 70 + index * 24, 11, PALETTE.white).setText(line));
+      this.howToPanel.push(
+        this.label(CANVAS_CENTER_Y - 70 + index * 24, 11, PALETTE.white).setText(line),
+      );
     });
     for (const object of this.howToPanel) object.setVisible(false);
   }
@@ -332,7 +358,7 @@ export class TitleScene extends Phaser.Scene {
 
   /** Ranking e ajustes: uma linha cada, com alvo de toque e tecla propria. */
   private buildMenu(): void {
-    const rankY = CENTER_Y + 224;
+    const rankY = CANVAS_CENTER_Y + 224;
     this.label(rankY, 14, PALETTE.cyan).setText('RANKING');
     this.button(CENTER_X, rankY, LOGICAL_WIDTH * 0.6, 32, () => this.openLeaderboard());
     // So' fora do modo de nome: com o seletor aberto, R, N e S sao letras que o
@@ -342,12 +368,28 @@ export class TitleScene extends Phaser.Scene {
       if (this.shortcutsReady) this.openLeaderboard();
     });
 
-    const settingsY = CENTER_Y + 256;
+    const settingsY = CANVAS_CENTER_Y + 256;
     this.label(settingsY, 14, PALETTE.violet).setText('AJUSTES');
     this.button(CENTER_X, settingsY, LOGICAL_WIDTH * 0.6, 32, () => this.openSettings());
     this.input.keyboard?.on('keydown-S', () => {
       if (this.shortcutsReady) this.openSettings();
     });
+
+    /*
+     * Aviso de instalacao: uma linha, sem alvo de toque proprio. O botao mesmo
+     * esta' nos ajustes — aqui e' so' para o jogador descobrir que existe. Some
+     * quando o jogo ja' esta' instalado ou quando o navegador nao instala.
+     */
+    this.installLabel = this.label(CANVAS_CENTER_Y + 284, 11, PALETTE.violet);
+    this.refreshInstallLabel();
+    const unsubscribe = onInstallChange(() => this.refreshInstallLabel());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe);
+  }
+
+  /** Texto derivado do navegador — nunca memorizado entre visitas. */
+  private refreshInstallLabel(): void {
+    if (!this.installLabel.active) return;
+    this.installLabel.setText(INSTALL_NOTICES[resolveInstallOption(installAvailability())]);
   }
 
   // -------------------------------------------------------------- sessao
@@ -372,13 +414,16 @@ export class TitleScene extends Phaser.Scene {
   private startNaming(): void {
     this.mode = 'naming';
     this.nameEntry?.destroy();
-    this.nameEntry = new NameEntry(this, CENTER_X, CENTER_Y, this.playerName);
+    this.nameEntry = new NameEntry(this, CENTER_X, CANVAS_CENTER_Y, this.playerName);
     this.nameEntry.onConfirm = (name): void => void this.confirmName(name);
 
     // O seletor ocupa o miolo: nenhum painel de atracao pode dividir o espaco.
     this.setPanel('showcase');
     this.pilotLabel.setVisible(false);
-    this.nameHint.setText('SEU NOME NO RANKING').setVisible(true).setY(CENTER_Y - 76);
+    this.nameHint
+      .setText('SEU NOME NO RANKING')
+      .setVisible(true)
+      .setY(CANVAS_CENTER_Y - 76);
     this.prompt.setText(
       this.controls.inputMode === 'touch' ? 'TOQUE EM OK PARA CONTINUAR' : 'ENTER CONFIRMA',
     );
@@ -387,7 +432,7 @@ export class TitleScene extends Phaser.Scene {
 
   /** Botao OK do modo de nome. So' existe enquanto ele durar. */
   private okButton(): void {
-    const y = CENTER_Y + 90;
+    const y = CANVAS_CENTER_Y + 90;
     const text = this.add
       .text(CENTER_X, y, 'OK', {
         fontFamily: HUD_FONT_FAMILY,
@@ -444,7 +489,7 @@ export class TitleScene extends Phaser.Scene {
     this.pilotLabel.setText(`PILOTO  ${this.playerName.toUpperCase()}`).setVisible(true);
     this.nameHint
       .setText(this.controls.inputMode === 'touch' ? 'TOQUE NO NOME PARA TROCAR' : 'N TROCA O NOME')
-      .setY(CENTER_Y + 52)
+      .setY(CANVAS_CENTER_Y + 52)
       .setVisible(true);
     this.shownMode = null;
     this.refreshInstructions();

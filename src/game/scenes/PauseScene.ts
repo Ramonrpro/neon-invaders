@@ -15,7 +15,13 @@ import Phaser from 'phaser';
 import { InputSystem } from '@game/systems/InputSystem';
 import type { InputMode } from '@game/systems/device';
 import { PALETTE, toCss } from '@game/config/palette';
-import { CENTER_X, CENTER_Y, HUD_FONT_FAMILY, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import {
+  CANVAS_HEIGHT,
+  CENTER_X,
+  HUD_FONT_FAMILY,
+  LOGICAL_WIDTH,
+  PLAY_CENTER_Y,
+} from '@game/config/screen';
 
 /** Emitido na `GameScene` quando o jogador retoma a partida. */
 export const RESUME_EVENT = 'neon:resume';
@@ -46,10 +52,10 @@ export class PauseScene extends Phaser.Scene {
      * Encontrado na verificacao do Milestone 8.
      */
     this.shownMode = null;
-    this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PALETTE.black, 0.86).setOrigin(0, 0);
+    this.add.rectangle(0, 0, LOGICAL_WIDTH, CANVAS_HEIGHT, PALETTE.black, 0.86).setOrigin(0, 0);
 
     this.add
-      .text(CENTER_X, CENTER_Y - 20, 'PAUSADO', {
+      .text(CENTER_X, PLAY_CENTER_Y - 20, 'PAUSADO', {
         fontFamily: HUD_FONT_FAMILY,
         fontSize: '30px',
         color: toCss(PALETTE.cyan),
@@ -57,7 +63,7 @@ export class PauseScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.prompt = this.add
-      .text(CENTER_X, CENTER_Y + 30, '', {
+      .text(CENTER_X, PLAY_CENTER_Y + 30, '', {
         fontFamily: HUD_FONT_FAMILY,
         fontSize: '14px',
         color: toCss(PALETTE.amber),
@@ -72,7 +78,7 @@ export class PauseScene extends Phaser.Scene {
      * formacao na tela. A `GameScene` continua pausada atras: esta Scene sai,
      * a de ajustes entra, e o VOLTAR traz a pausa de novo.
      */
-    const settingsY = CENTER_Y + 80;
+    const settingsY = PLAY_CENTER_Y + 80;
     this.add
       .text(CENTER_X, settingsY, 'AJUSTES', {
         fontFamily: HUD_FONT_FAMILY,

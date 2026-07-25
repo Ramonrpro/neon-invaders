@@ -48,7 +48,13 @@ import {
 import { BURSTS, SHAKE, type BurstProfile } from '@game/config/juice';
 import { LAST_LEVEL, getLevel, type LevelConfig } from '@game/config/levels';
 import { PALETTE, toCss } from '@game/config/palette';
-import { CENTER_X, CENTER_Y, HUD_FONT_FAMILY, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import {
+  CENTER_X,
+  HUD_FONT_FAMILY,
+  LOGICAL_WIDTH,
+  PLAY_CENTER_Y,
+  PLAY_HEIGHT,
+} from '@game/config/screen';
 import { bunkerCenterX } from '@game/core/bunker';
 import {
   nearestShooterIndex,
@@ -62,6 +68,7 @@ import { createRunStats, resetRunStats } from '@game/core/runStats';
 import { crossedExtraLifeThreshold } from '@game/core/scoring';
 import { bonusFor, nextSpawnDelayMs } from '@game/core/ufo';
 import { drawBackgroundBands, drawGroundLine } from '@game/gfx/background';
+import { createDeckHint, drawDeckChrome, type DeckHint } from '@game/gfx/deck';
 import { BUNKER_CARVE, TEX } from '@game/gfx/sprites';
 import { RESTART_EVENT } from '@game/scenes/GameOverScene';
 import { RESUME_EVENT } from '@game/scenes/PauseScene';
@@ -79,7 +86,7 @@ type PlayState = 'playing' | 'dying' | 'cleared' | 'gameover';
 
 /** Margem alem da qual o projetil e' recolhido para o pool. */
 const BULLET_DESPAWN_Y = -16;
-const ENEMY_BULLET_DESPAWN_Y = LOGICAL_HEIGHT + 16;
+const ENEMY_BULLET_DESPAWN_Y = PLAY_HEIGHT + 16;
 /** Idem na horizontal: so' o leque do MULTI sai pelos lados. */
 const BULLET_DESPAWN_MARGIN_X = 16;
 
@@ -146,6 +153,9 @@ export class GameScene extends Phaser.Scene {
   /** Buffer reaproveitado por `pickShooters` — um slot por coluna da formacao. */
   private readonly shooterSlots: (Alien | null)[] = [];
 
+  /** Aviso de arrasto no deck. Nulo enquanto o `create` nao rodou. */
+  private deckHint: DeckHint | null = null;
+
   constructor() {
     super('Game');
   }
@@ -154,6 +164,9 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(PALETTE.black);
     drawBackgroundBands(this);
     drawGroundLine(this, PLAYER.y + 20);
+    // O deck vem antes do HUD e das entidades: e' fundo, nao interface.
+    drawDeckChrome(this);
+    this.deckHint = createDeckHint(this);
     this.resetRunState();
 
     this.controls = new InputSystem(this);
@@ -196,7 +209,7 @@ export class GameScene extends Phaser.Scene {
     this.hud.onMuteTapped = (): void => this.toggleMute();
 
     this.banner = this.add
-      .text(CENTER_X, CENTER_Y - 20, '', {
+      .text(CENTER_X, PLAY_CENTER_Y - 20, '', {
         fontFamily: HUD_FONT_FAMILY,
         fontSize: '28px',
         color: toCss(PALETTE.phosphor),
@@ -205,7 +218,7 @@ export class GameScene extends Phaser.Scene {
       .setVisible(false);
 
     this.hint = this.add
-      .text(CENTER_X, CENTER_Y + 20, '', {
+      .text(CENTER_X, PLAY_CENTER_Y + 20, '', {
         fontFamily: HUD_FONT_FAMILY,
         fontSize: '14px',
         color: toCss(PALETTE.cyan),
@@ -347,6 +360,13 @@ export class GameScene extends Phaser.Scene {
     // O arrasto e' consumido mesmo fora do estado 'playing': deixar acumular
     // durante a morte faria a nave saltar no respawn.
     const dragDeltaX = this.controls.consumeDragDeltaX();
+    /*
+     * `dragDeltaX !== 0` e' literalmente "arrastou" — um toque parado, que o
+     * auto-fire dispara sempre, nao conta como aprender o gesto. A segunda
+     * condicao fecha o caso do aparelho de ponteiro grosso COM teclado, onde
+     * ninguem arrasta e o aviso ficaria na tela para sempre.
+     */
+    if (dragDeltaX !== 0 || this.controls.inputMode === 'keyboard') this.deckHint?.dismiss();
     if (this.state !== 'playing') return;
 
     this.player.move(deltaMs, this.controls.moveAxis, dragDeltaX);
@@ -500,12 +520,7 @@ export class GameScene extends Phaser.Scene {
 
     const bullet = this.enemyBullets.acquire();
     if (!bullet) return;
-    bullet.fire(
-      shooter.x,
-      shooter.bottom,
-      kind,
-      this.levelConfig.enemyBulletSpeedMultiplier,
-    );
+    bullet.fire(shooter.x, shooter.bottom, kind, this.levelConfig.enemyBulletSpeedMultiplier);
   }
 
   /**
@@ -656,7 +671,14 @@ export class GameScene extends Phaser.Scene {
   private killUfo(): void {
     const dropX = this.ufo.x;
     const dropY = this.ufo.y;
-    this.burst(this.ufo.x, this.ufo.y, TEX.explosionAlien, EXPLOSION.ufoMs, PALETTE.cyan, BURSTS.ufo);
+    this.burst(
+      this.ufo.x,
+      this.ufo.y,
+      TEX.explosionAlien,
+      EXPLOSION.ufoMs,
+      PALETTE.cyan,
+      BURSTS.ufo,
+    );
     this.ufo.deactivate();
     this.audio.stopUfo();
     this.audio.playAlienExplosion();

@@ -8,6 +8,7 @@
  * Cores em numero (0xRRGGBB) para consumo direto pelo Phaser e em string CSS
  * para o gerador de texturas via canvas 2D.
  */
+import { PLAY_HEIGHT } from '@game/config/screen';
 
 export const PALETTE = {
   black: 0x000000,
@@ -22,7 +23,7 @@ export const PALETTE = {
 
 export type PaletteKey = keyof typeof PALETTE;
 
-/** Faixas horizontais da tela, em coordenadas logicas (480x640). */
+/** Faixas horizontais da AREA DE JOGO, em coordenadas logicas (480x640). */
 export const BANDS = {
   /** Topo: HUD, UFO e barra de HP de chefao. */
   top: { y0: 0, y1: 96, color: PALETTE.cyan },
@@ -31,10 +32,17 @@ export const BANDS = {
   /** Faixa dos bunkers. */
   bunker: { y0: 460, y1: 545, color: PALETTE.phosphor },
   /** Base: nave do jogador. */
-  base: { y0: 545, y1: 640, color: PALETTE.amber },
+  base: { y0: 545, y1: PLAY_HEIGHT, color: PALETTE.amber },
 } as const;
 
-/** Cor da faixa em que uma coordenada Y logica cai. */
+/**
+ * Cor da faixa em que uma coordenada Y logica cai.
+ *
+ * Y abaixo de `PLAY_HEIGHT` (o deck de arrasto) cai em ambar por acordo, nao por
+ * acidente de fall-through: e' a mesma tinta da banda base, que
+ * `drawBackgroundBands` estende quando a superficie e' mais alta que a area de
+ * jogo.
+ */
 export function bandColorAt(y: number): number {
   if (y < BANDS.top.y1) return BANDS.top.color;
   if (y < BANDS.mid.y1) return BANDS.mid.color;

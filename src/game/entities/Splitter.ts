@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { SPLITTER, SPLITTER_MAX_X, SPLITTER_MIN_X } from '@game/config/gameplay';
-import { LOGICAL_HEIGHT } from '@game/config/screen';
+import { PLAY_HEIGHT } from '@game/config/screen';
 import { bounceStepX, type HorizontalDirection } from '@game/core/motion';
 import { hasEscaped } from '@game/core/splitter';
 import { TEX } from '@game/gfx/sprites';
@@ -53,7 +53,7 @@ export class Splitter extends Phaser.GameObjects.Image {
     this.x = step.x;
     this.direction = step.direction;
 
-    return hasEscaped(this.y, this.displayHeight / 2, LOGICAL_HEIGHT);
+    return hasEscaped(this.y, this.displayHeight / 2, PLAY_HEIGHT);
   }
 
   /** AABB contra um retangulo qualquer — projetil do jogador ou a nave. */

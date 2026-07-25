@@ -7,7 +7,7 @@
 
 import Phaser from 'phaser';
 import { PALETTE, toCss } from '@game/config/palette';
-import { CENTER_X, HUD_FONT_FAMILY } from '@game/config/screen';
+import { CANVAS_HEIGHT, CENTER_X, HUD_FONT_FAMILY } from '@game/config/screen';
 import { TEX } from '@game/gfx/sprites';
 import { drawBackgroundBands } from '@game/gfx/background';
 
@@ -29,7 +29,7 @@ export class SpriteShowcaseScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.black);
-    drawBackgroundBands(this);
+    drawBackgroundBands(this, CANVAS_HEIGHT);
 
     this.add
       .text(CENTER_X, 34, 'NEON INVADERS', {

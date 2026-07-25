@@ -8,6 +8,28 @@
     />
     <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta
+      name="description"
+      content="Shoot'em up de tela fixa: 5 fases, naves-mae, arte e audio gerados em codigo."
+    />
+
+    <!--
+      PWA. Tudo com caminho RELATIVO, coerente com o `base: './'` do
+      vite.config.ts — o jogo nao pode depender de estar na raiz do dominio.
+      Os arquivos referenciados aqui sao gerados por `npm run pwa:assets`.
+    -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="NEON INVADERS" />
+    <!--
+      `black`, e NAO `black-translucent`: translucent desenha o conteudo por
+      baixo da barra de status do iOS, e como o canvas agora encosta no topo da
+      tela (ver `#app.deck-top`), a barra cairia exatamente sobre o HUD — score e
+      botao de mudo ficam nos primeiros 60 px da area de jogo.
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>NEON INVADERS</title>
     <style>
       html,
@@ -47,6 +69,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+
+      /*
+       * Com deck de arrasto o canvas encosta no topo: a acao sobe para longe do
+       * polegar e toda a sobra fica embaixo. A classe e' posta por `main.ts`
+       * quando `DECK_HEIGHT > 0` — sem deck, o canvas continua centrado.
+       */
+      #app.deck-top {
+        align-items: flex-start;
       }
 
       canvas {

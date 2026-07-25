@@ -12,7 +12,7 @@
 
 import Phaser from 'phaser';
 import { PALETTE, toCss } from '@game/config/palette';
-import { CENTER_X, HUD_FONT_FAMILY, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import { CANVAS_HEIGHT, CENTER_X, HUD_FONT_FAMILY, LOGICAL_WIDTH } from '@game/config/screen';
 import { formatScore } from '@game/core/scoring';
 import { drawBackgroundBands } from '@game/gfx/background';
 import { getServices } from '@services/index';
@@ -69,7 +69,7 @@ export class LeaderboardScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.black);
-    drawBackgroundBands(this);
+    drawBackgroundBands(this, CANVAS_HEIGHT);
     this.escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC) ?? null;
 
     this.label(CENTER_X, 60, 'RANKING', 30, PALETTE.phosphor);
@@ -105,7 +105,7 @@ export class LeaderboardScene extends Phaser.Scene {
       PALETTE.amber,
     );
 
-    const backY = LOGICAL_HEIGHT - 56;
+    const backY = CANVAS_HEIGHT - 56;
     this.label(CENTER_X, backY, 'VOLTAR', 16, PALETTE.amber);
     this.zone(CENTER_X, backY, LOGICAL_WIDTH, TAB_HIT_HEIGHT, () => this.goBack());
 

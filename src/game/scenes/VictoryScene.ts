@@ -14,7 +14,13 @@ import Phaser from 'phaser';
 import { InputSystem } from '@game/systems/InputSystem';
 import { getRunReporter } from '@game/systems/RunReporter';
 import { PALETTE, toCss } from '@game/config/palette';
-import { CENTER_X, CENTER_Y, HUD_FONT_FAMILY, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import {
+  CANVAS_HEIGHT,
+  CENTER_X,
+  HUD_FONT_FAMILY,
+  LOGICAL_WIDTH,
+  PLAY_CENTER_Y,
+} from '@game/config/screen';
 import { formatScore } from '@game/core/scoring';
 import { createStarfield, twinkleStarfield } from '@game/gfx/starfield';
 import { RESTART_EVENT, submissionText } from '@game/scenes/GameOverScene';
@@ -57,20 +63,25 @@ export class VictoryScene extends Phaser.Scene {
     // Mais generoso que o da derrota: aqui o jogador quer olhar o numero.
     this.acceptInputAtMs = this.time.now + 1200;
 
-    this.add.rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PALETTE.black, 0.92).setOrigin(0, 0);
+    this.add.rectangle(0, 0, LOGICAL_WIDTH, CANVAS_HEIGHT, PALETTE.black, 0.92).setOrigin(0, 0);
 
     this.stars = createStarfield(this, 40);
 
-    this.label(CENTER_Y - 100, 'MISSAO', 30, PALETTE.phosphor);
-    this.label(CENTER_Y - 66, 'CUMPRIDA', 30, PALETTE.cyan);
-    this.label(CENTER_Y - 26, 'AS CINCO NAVES-MAE FORAM ABATIDAS', 11, PALETTE.violet);
+    this.label(PLAY_CENTER_Y - 100, 'MISSAO', 30, PALETTE.phosphor);
+    this.label(PLAY_CENTER_Y - 66, 'CUMPRIDA', 30, PALETTE.cyan);
+    this.label(PLAY_CENTER_Y - 26, 'AS CINCO NAVES-MAE FORAM ABATIDAS', 11, PALETTE.violet);
 
-    this.label(CENTER_Y + 20, `SCORE   ${formatScore(this.result.score)}`, 20, PALETTE.amber);
-    this.label(CENTER_Y + 52, `TEMPO   ${formatDuration(this.result.elapsedMs)}`, 16, PALETTE.cyan);
+    this.label(PLAY_CENTER_Y + 20, `SCORE   ${formatScore(this.result.score)}`, 20, PALETTE.amber);
+    this.label(
+      PLAY_CENTER_Y + 52,
+      `TEMPO   ${formatDuration(this.result.elapsedMs)}`,
+      16,
+      PALETTE.cyan,
+    );
 
     // Mesma leitura da tela de derrota: o envio ja' foi disparado pela
     // `GameScene` e o `RunReporter` guarda o resultado para quem chegar depois.
-    this.rankLabel = this.label(CENTER_Y + 84, '', 15, PALETTE.phosphor);
+    this.rankLabel = this.label(PLAY_CENTER_Y + 84, '', 15, PALETTE.phosphor);
     this.rankLabel.setText(submissionText(getRunReporter().current));
     this.unsubscribe = getRunReporter().onResolved((state) => {
       if (this.rankLabel.active) this.rankLabel.setText(submissionText(state));
@@ -80,9 +91,9 @@ export class VictoryScene extends Phaser.Scene {
       this.unsubscribe = null;
     });
 
-    this.label(CENTER_Y + 130, 'ENTER PARA JOGAR DE NOVO', 14, PALETTE.amber);
+    this.label(PLAY_CENTER_Y + 130, 'ENTER PARA JOGAR DE NOVO', 14, PALETTE.amber);
 
-    const rankY = CENTER_Y + 162;
+    const rankY = PLAY_CENTER_Y + 162;
     this.label(rankY, 'VER RANKING', 14, PALETTE.cyan);
     this.add
       .zone(CENTER_X, rankY, LOGICAL_WIDTH * 0.6, 40)

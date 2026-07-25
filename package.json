@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "predev": "npm run pwa:assets",
+    "build": "npm run pwa:assets && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "supabase:sync": "node scripts/syncEdgeValidation.mjs",
+    "pwa:assets": "node scripts/buildPwaAssets.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\""
   },
   "dependencies": {

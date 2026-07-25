@@ -24,6 +24,7 @@
     "baseUrl": ".",
     "paths": {
       "@game/*": ["src/game/*"],
+      "@pwa/*": ["src/pwa/*"],
       "@services/*": ["src/services/*"],
       "@ui/*": ["src/ui/*"]
     }

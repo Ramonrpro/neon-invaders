@@ -3,3 +3,26 @@ dist/
 coverage/
 *.local
 .DS_Store
+
+# Icones, manifest e service worker do PWA: TODO o conteudo de `public/` e'
+# gerado por `npm run pwa:assets` (o `npm run build` chama). O fonte do service
+# worker mora em `src/pwa/sw.template.js`, que sim e' versionado.
+public/
+
+# Nenhum asset binario entra neste repositorio (CLAUDE.md secao 2). A regra
+# estava so' escrita; aqui ela passa a ser aplicada. Cinto e suspensorio: o
+# `public/` acima cobre o que o build gera, e estas extensoes cobrem qualquer
+# arquivo largado em qualquer pasta.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.mp3
+*.ogg
+*.wav
+*.ttf
+*.otf
+*.woff
+*.woff2

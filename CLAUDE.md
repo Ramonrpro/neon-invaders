@@ -26,9 +26,13 @@ Scripts: `npm run dev` · `npm run build` · `npm run test` · `npm run lint` ·
 
 ## 2. Decisões arquiteturais fechadas
 
-- **Resolução lógica fixa 480×640**, `Scale.FIT` + `CENTER_BOTH`. Nenhum
-  posicionamento em pixels de tela real — sempre coordenadas lógicas
-  (`src/game/config/screen.ts`).
+- **Área de jogo fixa 480×640**, `Scale.FIT`. Nenhum posicionamento em pixels de
+  tela real — sempre coordenadas lógicas (`src/game/config/screen.ts`).
+  A **altura do canvas** é medida uma vez no boot (`core/viewport.ts`): num
+  celular retrato ela cresce até 640+224, e a sobra é o **deck de arrasto**, a
+  faixa vazia onde o polegar move a nave sem cobrir nada. `PLAY_HEIGHT` é a
+  ação; `CANVAS_HEIGHT` é o vidro do monitor e a âncora de menu. Centralização
+  é do CSS, não do Phaser (`autoCenter: NO_CENTER` — ver seção 8).
 - **Render**: `pixelArt: true`, `roundPixels: true`, `antialias: false`.
 - **Zero assets externos.** Sprites são bitmaps de strings em
   `src/game/gfx/sprites.ts`, convertidos em `CanvasTexture` no boot por
@@ -58,8 +62,12 @@ src/
 │  ├─ config/               screen, palette, gameplay, levels, audio, bosses, juice
 │  │  └─ powerups/          registry: index + um arquivo por tipo
 │  ├─ gfx/                  bitmaps de sprite + gerador de texturas, fundo,
-│  │                        campo de estrelas, textura do CRT
+│  │                        campo de estrelas, textura do CRT, deck de arrasto
 │  └─ core/                 lógica pura testável — PROIBIDO importar Phaser
+├─ pwa/                     ← casca do app: instalação e service worker
+│  ├─ index.ts              initPwa() — o único ponto de entrada
+│  ├─ install.ts            fatos do navegador sobre instalar (sem política)
+│  └─ sw.template.js        fonte do service worker; o build estampa o cache
 ├─ services/                ← território exclusivo do agente BACKEND
 │  ├─ index.ts              getServices() — o único ponto de entrada do jogo
 │  ├─ types.ts              ScoreService, AuthService, ScoreEntry, RunSubmission
@@ -73,13 +81,15 @@ src/
 │                           authService, scoreService
 └─ ui/                      HUD (Hud, BossBar) e overlays sobre o canvas
 supabase/                   migrations, config.toml e as Edge Functions
-scripts/                    ferramental de build (syncEdgeValidation.mjs)
+scripts/                    ferramental de build (syncEdgeValidation.mjs,
+                            buildPwaAssets.mjs)
+public/                     GERADO no build (ícones, manifest, sw.js) — fora do git
 tests/                      Vitest
 docs/                       api-contract.md, anti-cheat.md, supabase-setup.md
 ```
 
 Aliases de import configurados em `tsconfig.json` e `vite.config.ts`:
-`@game/*`, `@services/*`, `@ui/*`.
+`@game/*`, `@pwa/*`, `@services/*`, `@ui/*`.
 
 ## 4. Fronteira entre os agentes (crítica)
 
@@ -89,6 +99,12 @@ Aliases de import configurados em `tsconfig.json` e `vite.config.ts`:
 - O agente **backend** nunca toca em nada dentro de `src/game/`.
 - O único ponto de contato é `src/services/` — definido pelo backend, consumido
   pelo frontend. Mudança de contrato exige parar e renegociar com o orquestrador.
+- **`src/pwa/` é a casca do app** — terceiro território, dono junto de `main.ts`
+  e `index.html`. Nem frontend de jogo nem backend. Expõe ao jogo funções
+  pequenas, sem rede, sem storage e sem endpoint (`installAvailability()`,
+  `promptInstall()`, `onInstallChange()`); a política de o que mostrar é lógica
+  pura em `game/core/install.ts`. O service worker só cacheia a **própria
+  origem** — é a guarda de origem que o mantém longe do Supabase.
 
 Duas regras estão codificadas no ESLint e falham o lint se violadas:
 
@@ -166,6 +182,47 @@ balanceamento estão em `config/`; a lógica pura correspondente tem teste; e
 
 ## 8. Convenções que já mordem
 
+- **`autoCenter` do Phaser + `align-items: center` do CSS se SOMAM.** O
+  `ScaleManager.updateCenter` escreve `marginLeft`/`marginTop = (parent − canvas)/2`
+  no canvas, e num container flex o centramento é da **margin box** — com os dois
+  ligados, a borda de cima caía em 75% da folga, não 50%. Era por isso que a barra
+  preta de cima era maior que a de baixo no celular. Quem posiciona é o CSS
+  sozinho (`autoCenter: NO_CENTER` + `#app.deck-top`). O mapeamento de ponteiro
+  não sofre com isso: `updateBounds()` lê `getBoundingClientRect()` a cada frame.
+- **A faixa de arrasto (deck) vive DENTRO do canvas, e é por isso que funciona.**
+  O Phaser só recebe ponteiro no próprio canvas — arrastar no letterbox do `FIT`
+  não chega ao `InputSystem`. Por isso o deck é altura de canvas, não margem de
+  CSS, e não precisa de uma linha nova de input. E **não** tem `Zone`: os eventos
+  de GameObject chegam antes do ponteiro global e roubariam o toque do resto da
+  tela (mesma família do `tapHandledByButton`).
+- **Overlay de partida centra na ação; tela cheia centra no canvas.** `PauseScene`,
+  `GameOverScene` e `VictoryScene` usam `PLAY_CENTER_Y` (com o scrim cobrindo
+  `CANVAS_HEIGHT`, senão a partida congelada vaza por baixo); `TitleScene`,
+  `SettingsScene` e `LeaderboardScene` usam `CANVAS_CENTER_Y`. Centrar a pausa no
+  canvas joga "PAUSADO" em cima dos bunkers.
+- **Rodapé de menu se mede pela última linha, não por um deslocamento do centro.**
+  A `SettingsScene` tem 4 ou 5 linhas conforme o navegador ofereça instalação; com
+  o valor fixo, "INSTALAR APP" batia no "VOLTAR".
+- **A dica do deck é estado de MÓDULO (`systems/deckHint.ts`), não campo de
+  instância.** Um campo sobreviveria entre partidas, mas `resetRunState()` existe
+  justamente para zerar campos de instância — a primeira pessoa a "consertar o
+  reset" faria o aviso reaparecer a cada partida.
+- **O nome do cache do service worker é estampado por build, e isso É o mecanismo
+  de atualização.** O navegador só reinstala o SW se os BYTES do arquivo mudarem;
+  um `neon-v1` fixo serviria o bundle velho para sempre. Daí o template em
+  `src/pwa/sw.template.js` + `__CACHE_NAME__` trocado por versão e SHA do commit,
+  mais `updateViaCache: 'none'` no registro. O documento é network-first (o nome
+  do HTML não muda entre deploys); o resto é cache-first porque o Vite põe hash
+  de conteúdo no nome.
+- **`config/screen.ts` é importado pelos testes, em ambiente `node`.** Ler
+  `window` ali exige a guarda `typeof window === 'undefined'`, senão a suíte
+  inteira morre com `window is not defined`. `tests/viewport.test.ts` tem um caso
+  que quebra sozinho se alguém remover a guarda.
+- **`.gitattributes` com `eol=lf` não é enfeite.** Com o `core.autocrlf=true`
+  padrão do Git for Windows, um `git checkout` reescreve os arquivos com CRLF e
+  `tests/edgeShared.test.ts` — que compara `src/services/validation/` com a cópia
+  em `supabase/functions/` byte a byte — reprova sem que ninguém tenha mudado uma
+  regra.
 - **Nomes de campo que colidem com Phaser.** Já custaram tempo quatro: `input`
   (o `InputSystem` vive em `this.controls`), `data` (o resultado da partida em
   `GameOverScene` vive em `this.result`), `load` (o LoaderPlugin — a
@@ -217,6 +274,9 @@ balanceamento estão em `config/`; a lógica pura correspondente tem teste; e
 - **Atalhos de URL, só em dev:** `?sprites` abre a vitrine de arte; `?boss` cai
   direto na luta contra a nave-mãe (`?boss=3` na da fase 3), pulando a formação
   e a tela de título. Conferir um chefão exigia limpar 55 aliens antes.
+  `?viewport=390x844` finge o tamanho da janela para o cálculo do deck — existe
+  porque o ambiente de automação **não** redimensiona a janela, e sem isso não há
+  como conferir o deck fora de um celular de verdade.
 - **UFO ≠ chefão.** A nave que cruza o topo a cada 20–30 s é o UFO (Milestone 3)
   e continua existindo durante toda a fase. O chefão só entra depois que a
   formação é limpa. Já gerou confusão de identidade uma vez.
@@ -366,6 +426,18 @@ persistida e renovada, rate limit por conta e por IP, e `getServices()`
 escolhendo local ou Supabase por variável de ambiente. Pendente: **provisionar o
 projeto de verdade** — exige conta na Supabase e é passo do usuário
 (`docs/supabase-setup.md`, incluindo a conferência que confirma a RLS de pé).
+
+**Milestone 10 concluído em código** — celular de verdade: publicado no GitHub
+(`Ramonrpro/neon-invaders`) e na Vercel, testado num aparelho físico, e as duas
+correções que o teste pediu. **Deck de arrasto**: a altura do canvas passa a ser
+medida no boot (`core/viewport.ts`), a área de jogo continua 480×640 intacta no
+topo e a faixa de até 224 px abaixo dela é onde o polegar arrasta sem cobrir a
+nave — mais o conserto do alinhamento duplo do canvas (seção 8). **PWA
+instalável**: ícones PNG rasterizados em tempo de build a partir de um bitmap, com
+o `zlib` do Node e zero dependência nova (`scripts/buildPwaAssets.mjs`), manifest,
+service worker com cache offline e nome estampado por build, linha "INSTALAR APP"
+nos ajustes e aviso no título. Pendente: **abrir o app instalado num celular** —
+conferir o HUD abaixo da barra de status e o offline de verdade.
 
 Próximo: tuning de dificuldade jogando de verdade (pendência aberta desde o M6)
 e o milestone dos cinco chefões distintos. Ver `PLANO.md`.

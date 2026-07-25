@@ -26,7 +26,7 @@
 import Phaser from 'phaser';
 import { CRT } from '@game/config/juice';
 import { PALETTE } from '@game/config/palette';
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import { CANVAS_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
 import { resolveCrtEnabled, type CrtPreference } from '@game/core/crt';
 import { CRT_TEXTURE, ensureCrtTexture } from '@game/gfx/crt';
 import { guessInputMode } from '@game/systems/device';
@@ -82,7 +82,7 @@ export class CrtScene extends Phaser.Scene {
     ensureCrtTexture(this);
 
     this.glow = this.add
-      .rectangle(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT, PALETTE.phosphor)
+      .rectangle(0, 0, LOGICAL_WIDTH, CANVAS_HEIGHT, PALETTE.phosphor)
       .setOrigin(0, 0)
       .setAlpha(CRT.glowAlpha)
       .setBlendMode(Phaser.BlendModes.ADD);

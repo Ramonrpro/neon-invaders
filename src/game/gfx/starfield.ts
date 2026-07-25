@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { PALETTE } from '@game/config/palette';
-import { LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
+import { CANVAS_HEIGHT, LOGICAL_WIDTH } from '@game/config/screen';
 
 /**
  * Campo de estrelas cintilantes, usado nas telas fora da partida.
@@ -22,7 +22,7 @@ export function createStarfield(
   for (let i = 0; i < count; i++) {
     stars.push(
       scene.add
-        .rectangle(Math.random() * LOGICAL_WIDTH, Math.random() * LOGICAL_HEIGHT, 2, 2, color)
+        .rectangle(Math.random() * LOGICAL_WIDTH, Math.random() * CANVAS_HEIGHT, 2, 2, color)
         .setOrigin(0.5),
     );
   }
