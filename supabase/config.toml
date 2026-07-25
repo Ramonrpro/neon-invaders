@@ -1,0 +1,64 @@
+# Configuracao do projeto Supabase — NEON INVADERS.
+#
+# Vale para `supabase start` (stack local em Docker) e para o que o `supabase
+# link` + `supabase db push` levam ao projeto remoto. As chaves omitidas ficam
+# no padrao da CLI; aqui esta' so' o que este jogo precisa que seja diferente.
+#
+# Troque `project_id` pelo ref do seu projeto (o subdominio de
+# `https://<ref>.supabase.co`).
+
+project_id = "neon-invaders"
+
+[api]
+enabled = true
+port = 54321
+# `public` basta: o ranking sai das duas views, e nada mais e' exposto.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+# Teto de linhas por consulta ao PostgREST. O ranking pede 100 no maximo.
+max_rows = 100
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+# Em producao, troque pela URL de onde o jogo e' servido.
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# O jogo e' 100% jogavel sem conta: o modo convidado E' o login anonimo.
+enable_anonymous_sign_ins = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Confirmacao por e-mail DESLIGADA de proposito: com ela ligada, `signUp`
+# devolve usuario sem sessao e o jogador fica sem ranking ate' abrir o e-mail.
+# Ligue se um dia houver premio de verdade em jogo — o adapter ja' trata o caso
+# devolvendo UNAVAILABLE com mensagem propria.
+enable_confirmations = false
+
+# Limites do GoTrue. O contrato pede 10 chamadas de auth por hora por IP (§5);
+# o que a plataforma expoe e' um teto por hora de e-mails e de tentativas de
+# login, configurado aqui e no painel (Authentication > Rate Limits).
+[auth.rate_limit]
+# Tentativas de login/refresh por IP a cada 5 minutos.
+sign_in_sign_ups = 30
+# Criacao de usuario anonimo por IP por hora. Convidado e' gratis, mas nao
+# ilimitado: sem teto, um script gera mil contas descartaveis por minuto.
+anonymous_users = 30
+
+[functions.runs-start]
+# JWT obrigatorio: nao existe partida sem jogador, nem que seja convidado.
+verify_jwt = true
+
+[functions.runs-submit]
+verify_jwt = true
