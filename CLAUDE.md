@@ -237,6 +237,13 @@ balanceamento estão em `config/`; a lógica pura correspondente tem teste; e
   branco. Já mordeu na `PauseScene` (voltar dos ajustes tirava o "ENTER PARA
   CONTINUAR"); `TitleScene`, `PauseScene` e `SettingsScene` zeram isso no
   `create`. Mesma família do `resetRunState()` da `GameScene`.
+- **Fim de onda se pergunta por FRAME, não no momento do abate.** Um splitter sai
+  de cena por quatro caminhos — abatido, escapando pela base, matando o jogador
+  ou recolhido no respawn — e só o primeiro passava por um abate. Quando o último
+  alien da formação se partia (fase 3 é a primeira com `splitChance` > 0) e os
+  filhotes saíam por qualquer um dos outros três, a formação ficava vazia, sem
+  splitter e sem ninguém para chamar a nave-mãe: partida travada para sempre. A
+  regra é `core/wave.ts`; `checkWaveCleared` roda no `update` da `GameScene`.
 - **Bunker = duas cópias sincronizadas.** `RenderTexture` para o que se vê,
   `Uint8Array` para o que colide (ler pixels do RT por tiro é inviável). Elas
   só continuam idênticas porque a escavação usa **o mesmo bitmap de brocha** nos

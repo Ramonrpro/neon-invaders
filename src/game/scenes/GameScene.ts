@@ -67,6 +67,7 @@ import { childDirection, shouldSplit, SPLIT_CHILDREN } from '@game/core/splitter
 import { createRunStats, resetRunStats } from '@game/core/runStats';
 import { crossedExtraLifeThreshold } from '@game/core/scoring';
 import { bonusFor, nextSpawnDelayMs } from '@game/core/ufo';
+import { isWaveCleared, type PlayState } from '@game/core/wave';
 import { drawBackgroundBands, drawGroundLine } from '@game/gfx/background';
 import { createDeckHint, drawDeckChrome, type DeckHint } from '@game/gfx/deck';
 import { BUNKER_CARVE, TEX } from '@game/gfx/sprites';
@@ -76,13 +77,6 @@ import { getRunReporter } from '@game/systems/RunReporter';
 import { onSettings } from '@game/systems/settingsBus';
 import { getServices } from '@services/index';
 import type { GameSettings } from '@services/settings';
-
-/**
- * `dying` congela a acao por ~1 s depois que a nave explode; `cleared` e o
- * intervalo entre ondas. Em ambos os projeteis continuam se movendo mas nada
- * colide — o jogador ve o resultado do golpe antes do jogo seguir.
- */
-type PlayState = 'playing' | 'dying' | 'cleared' | 'gameover';
 
 /** Margem alem da qual o projetil e' recolhido para o pool. */
 const BULLET_DESPAWN_Y = -16;
@@ -316,6 +310,8 @@ export class GameScene extends Phaser.Scene {
 
     this.updateBoss(delta);
     this.updateSplitters(delta);
+    // Por frame, e nao no momento de cada morte: ver `core/wave.ts`.
+    this.checkWaveCleared();
 
     const step = this.grid.update(delta);
     if (step) {
@@ -475,10 +471,9 @@ export class GameScene extends Phaser.Scene {
         this.addScore(alien.points);
         this.recycleBullet(bullet);
         this.powerUps.tryDrop(dropX, dropY, this.levelConfig.powerUpDropRate, this.time.now);
-        // A partida pode gerar filhotes — por isso o teste de onda limpa vem
-        // DEPOIS dela, senao a onda acabaria com dois bichos ainda na tela.
+        // A partida pode gerar filhotes, e eles seguram a onda: quem fecha a
+        // onda e' o `checkWaveCleared` do `update`, ja' com os filhotes na tela.
         this.trySplit(alien);
-        this.checkWaveCleared();
       }
     }
   }
@@ -751,7 +746,6 @@ export class GameScene extends Phaser.Scene {
       this.audio.playAlienExplosion();
       this.runStats.splitterKills++;
       this.addScore(SPLITTER.points);
-      this.checkWaveCleared();
       return true;
     }
     return false;
@@ -773,13 +767,17 @@ export class GameScene extends Phaser.Scene {
    * A onda so' acaba quando a formacao esta' vazia E nenhum splitter sobrou —
    * o que saiu de um alien partido ainda e' parte da formacao.
    *
-   * O guarda do chefao e' essencial: durante a luta a formacao ja' esta' vazia,
-   * e matar um minion cairia aqui e chamaria `clearWave` uma segunda vez.
+   * Roda a cada frame, chamada do `update`. A regra e os motivos estao em
+   * `core/wave.ts`; aqui so' se le o estado da Scene.
    */
   private checkWaveCleared(): void {
-    if (this.state !== 'playing' || this.boss.active) return;
-    if (!this.grid.isCleared || this.splitters.activeCount > 0) return;
-    this.clearWave();
+    const cleared = isWaveCleared({
+      state: this.state,
+      bossActive: this.boss.active,
+      formationCleared: this.grid.isCleared,
+      splittersAlive: this.splitters.activeCount,
+    });
+    if (cleared) this.clearWave();
   }
 
   // ---------------------------------------------------------------- chefao
